@@ -1,9 +1,30 @@
-import bodyParser from "body-parser";
-import express from "express";
-import { listings } from "./listing";
+require("dotenv").config();
 
-const app = express();
-const port = 9000;
+import { ApolloServer } from "apollo-server-express";
+import express, { Application } from "express";
+import { connectDatabase } from "./database";
+import { resolvers, typeDefs } from "./graphql/index";
+
+const mount = async (app: Application) => {
+  const db = await connectDatabase();
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    context: () => ({ db })
+  });
+  server.applyMiddleware({ app, path: "/api" });
+
+  app.listen(process.env.PORT);
+
+  console.log(`[app]: http://localhost:${process.env.PORT}`);
+
+  const listings = await db.listings.find({}).toArray();
+  console.log(listings);
+};
+
+mount(express());
+
+/*WITHOUT GRAPHQL
 
 // bodyparser parses incoming rquests as json
 //  and expose the result on request.body
@@ -24,8 +45,7 @@ app.post("/delete-listing", (req, resp) => {
 
   return resp.send("Failed to delete listing");
 });
-
-app.listen(port);
+*/
 
 //CURL Tests
 
@@ -36,5 +56,3 @@ app.listen(port);
 
 //List get
 //  curl -X GET http://localhost:9000/listings
-
-console.log(`[app]: http://localhost:${port}`);
